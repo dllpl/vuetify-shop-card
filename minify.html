@@ -1,0 +1,79 @@
+<!DOCTYPE html><link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"rel=stylesheet><link href=https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css rel=stylesheet><link href=https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css rel=stylesheet><meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,minimal-ui"name=viewport><div id=app><v-app><v-main><v-container fluid><v-data-iterator :items=tempItems :items-per-page.sync=itemsPerPage :page.sync=page :search=search :sort-by=sortBy.toLowerCase() :sort-desc=sortDesc hide-default-footer><template v-slot:header><v-card style=background-color:rgba(121,178,133,.14) color="mb-3 rounded-xl pa-3"><v-row justify=space-between><v-col cols=12 lg=4 md=6 sm=12><v-text-field class="rounded-xl text--black"hide-details flat clearable label="Поиск по марке"prepend-inner-icon=mdi-magnify solo-inverted v-model=search white></v-text-field></v-col><v-col cols=12 lg=6 md=6 sm=12><v-row class="px-3 pt-2"><v-range-slider :max=max :min=min class=align-center hide-details label="Поиск по цене"step=250000 ticks v-model=range></v-range-slider></v-row><v-row class="px-3 pb-2"><v-text-field class="mt-0 pt-0"hide-details :value=range[0] @change="$set(range, 0, $event)"outlined prefix=от rounded style=width:100px suffix=₽ type=number flat></v-text-field><v-text-field class="mt-0 pt-0 ml-3"hide-details :value=range[1] @change="$set(range, 1, $event)"outlined prefix=до rounded style=width:100px suffix=₽ type=number></v-text-field></v-row></v-col></v-row></v-card></template><template v-slot:default=props><v-row><v-col cols=12 lg=3 md=4 sm=6 :key=item.id v-for="item in props.items"><v-card style=background-color:rgba(121,178,133,.14) class=rounded-xl><v-card-title class="font-weight-bold subheading">{{ item.car_brand }} {{ item.car_model }} {{ item.year }}</v-card-title><v-carousel height=400 hide-delimiter-background><v-carousel-item :key=i :src=item @click="dialog = true; click_img = item"style=cursor:pointer v-for="(item, i) in item.forSalePhotos"></v-carousel-item></v-carousel><v-list dense style=background-color:rgba(121,178,133,.14)><v-list-item :key=index v-for="(key, index) in filteredKeys"><v-list-item-content :class="{ 'blue--text': sortBy === key }"v-if="key === 'Адрес'">{{ key }}: {{ item[key.toLowerCase()] }} {{ item.address }}</v-list-item-content><v-list-item-content :class="{ 'blue--text': sortBy === key }"v-else-if="key === 'Цена'">{{ key }}: {{ item[key.toLowerCase()] }} {{ item.price.toLocaleString('ru-RU', {minimumFractionDigits: 2}) }} ₽</v-list-item-content></v-list-item></v-list><v-card-actions style=justify-content:center><a href=https://gospts.ru/%D0%BA%D1%83%D0%BF%D0%B8%D1%82%D1%8C-%D0%B0%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C-%D0%B8%D0%B7-eac/#zayavka style=text-decoration:none target=_parent><v-btn rounded style=background-color:#79B285;color:#fff>Отправить заявку</v-btn></a></v-card-actions></v-card></v-col></v-row></template><template v-slot:footer><v-row class=mt-2 align=center justify=center><span class=grey--text>Карточек на странице</span><v-menu offset-y><template v-slot:activator="{ on, attrs }"><v-btn class=ml-2 color=dark text v-bind=attrs v-on=on>{{ itemsPerPage }}<v-icon>mdi-chevron-down</v-icon></v-btn></template></v-menu><v-spacer></v-spacer><span class="grey--text mr-4">Страница {{ page }} из {{ numberOfPages }}</span><v-btn class=mr-1 color=dark @click=formerPage dark fab><v-icon>mdi-chevron-left</v-icon></v-btn><v-btn class=ml-1 color=dark @click=nextPage dark fab><v-icon>mdi-chevron-right</v-icon></v-btn></v-row></template><template v-slot:no-results><span>Нет подходящих вариантов</span></template></v-data-iterator><v-dialog max-width=800px min-width=340px v-model=dialog><v-img :src=click_img max-height=650px></v-img></v-dialog></v-container></v-main></v-app></div><script src=https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js></script><script src=https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js></script><script>new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+      data() {
+    return {
+      base_url: 'https://api.poverka-cistern.ru/v1',
+      click_img: '',
+      itemsPerPageArray: [4, 6, 12],
+      search: '',
+      filter: {},
+      sortDesc: false,
+      min: 0,
+      max: 0,
+      range: [0, 0],
+      page: 1,
+      itemsPerPage: 12,
+      sortBy: 'name',
+      keys: [
+        'Название',
+        'Адрес',
+        'Цена',
+      ],
+      items: [],
+      tempItems: [],
+
+      dialog: false
+    }
+  },
+  computed: {
+    numberOfPages() {
+      return Math.ceil(this.tempItems.length / this.itemsPerPage)
+    },
+    filteredKeys() {
+      return this.keys.filter(key => key !== 'Название')
+    },
+  },
+  watch: {
+    range(val) {
+      let tempItems = this.items
+      this.tempItems = tempItems.filter(function (item) {
+        return item.price >= val[0] && item.price <= val[1]
+      })
+    }
+  },
+  methods: {
+    nextPage() {
+      if (this.page + 1 <= this.numberOfPages) this.page += 1
+    },
+    formerPage() {
+      if (this.page - 1 >= 1) this.page -= 1
+    },
+    updateItemsPerPage(number) {
+      this.itemsPerPage = number
+    },
+    getData(page = 0, limit = 0) {
+      let url = this.base_url + '/bid-for-sale?'
+      page ? url += `page=${page}` : ''
+      limit ? url += `&limit = ${limit}` : ''
+      fetch(url).then(res => {
+        if (res.ok) {
+          res.json().then((data) => {
+            this.items = data.data.models
+            this.tempItems = data.data.models
+            this.min = this.range[0] = this.items.reduce(function (acc, curr) {
+              return Math.min(acc, curr.price);
+            }, Infinity)
+            this.max = this.range[1] = this.items.reduce(function (acc, curr) {
+              return Math.max(acc, curr.price);
+            }, -Infinity)
+            this.range = [this.min, this.max]
+          })
+        }
+      })
+    },
+  },
+  mounted() {
+    this.getData()
+  }
+    })</script><style>.v-label{font-size:20px;font-weight:700}</style>

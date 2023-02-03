@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+<body>
+  <div id="app">
+    <v-app>
+      <v-main>
+        <v-container fluid>
+            <v-data-iterator
+                :items="tempItems"
+                :items-per-page.sync="itemsPerPage"
+                :page.sync="page"
+                :search="search"
+                :sort-by="sortBy.toLowerCase()"
+                :sort-desc="sortDesc"
+                hide-default-footer
+            >
+              <template v-slot:header>
+                <v-card color="mb-3 rounded-xl pa-3" style="background-color: rgba(121, 178, 133, 0.14)">
+                  <v-row justify="space-between">
+                    <v-col lg="4" md="6" sm="12" cols="12">
+                      <v-text-field
+                          v-model="search"
+                          clearable
+                          flat
+                          solo-inverted
+                          hide-details
+                          white
+                          prepend-inner-icon="mdi-magnify"
+                          label="Поиск по марке"
+                          class="rounded-xl text--black"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col lg="6" md="6" sm="12" cols="12">
+                      <v-row class="px-3 pt-2">
+                        <v-range-slider
+                            v-model="range"
+                            :max="max"
+                            :min="min"
+                            ticks
+                            hide-details
+                            step="250000"
+                            label="Поиск по цене"
+                            class="align-center"
+                        >
+                        </v-range-slider>
+                      </v-row>
+                      <v-row class="px-3 pb-2">
+                        <v-text-field
+                            :value="range[0]"
+                            class="mt-0 pt-0"
+                            rounded
+                            hide-details
+                            flat
+                            type="number"
+                            prefix="от"
+                            outlined
+                            suffix="₽"
+                            @change="$set(range, 0, $event)"
+                            style="width: 100px"
+                        ></v-text-field>
+                        <v-text-field
+                            :value="range[1]"
+                            class="mt-0 pt-0 ml-3"
+                            hide-details
+                            type="number"
+                            prefix="до"
+                            outlined
+                            rounded
+                            suffix="₽"
+                            style="width: 100px;"
+                            @change="$set(range, 1, $event)"
+                        ></v-text-field>
+                      </v-row>
+                    </v-col>
+                  </v-row>
+                </v-card>
+              </template>
+        
+              <template v-slot:default="props">
+                <v-row>
+                  <v-col
+                      v-for="item in props.items"
+                      :key="item.id"
+                      cols="12"
+                      sm="6"
+                      md="4"
+                      lg="3"
+                  >
+                    <v-card style="background-color: rgba(121, 178, 133, 0.14)" class="rounded-xl">
+                      <v-card-title class="subheading font-weight-bold">
+                        {{ item.car_brand }} {{ item.car_model }} {{ item.year }}
+                      </v-card-title>
+        
+                      <v-carousel hide-delimiter-background height="400">
+                        <v-carousel-item
+                            v-for="(item, i) in item.forSalePhotos"
+                            :key="i"
+                            :src="item"
+                            @click="dialog = true; click_img = item"
+                            style="cursor: pointer"
+                        >
+                        </v-carousel-item>
+                      </v-carousel>
+        
+                      <v-list dense style="background-color: rgba(121, 178, 133, 0.14)">
+                        <v-list-item
+                            v-for="(key, index) in filteredKeys"
+                            :key="index"
+                        >
+                          <v-list-item-content :class="{ 'blue--text': sortBy === key }" v-if="key === 'Адрес'">
+                            {{ key }}: {{ item[key.toLowerCase()] }} {{ item.address }}
+                          </v-list-item-content>
+                          <v-list-item-content :class="{ 'blue--text': sortBy === key }" v-else-if="key === 'Цена'">
+                            {{ key }}: {{ item[key.toLowerCase()] }}
+                            {{ item.price.toLocaleString('ru-RU', {minimumFractionDigits: 2}) }}&nbsp;₽
+                          </v-list-item-content>
+                        </v-list-item>
+                      </v-list>
+                      <v-card-actions style="justify-content: center">
+                        <a href="https://gospts.ru/%D0%BA%D1%83%D0%BF%D0%B8%D1%82%D1%8C-%D0%B0%D0%B2%D1%82%D0%BE%D0%BC%D0%BE%D0%B1%D0%B8%D0%BB%D1%8C-%D0%B8%D0%B7-eac/#zayavka"
+                           target="_parent" style="text-decoration: none">
+                          <v-btn rounded style="background-color: #79B285; color:white">
+                            Отправить заявку
+                          </v-btn>
+                        </a>
+                      </v-card-actions>
+                    </v-card>
+                  </v-col>
+                </v-row>
+              </template>
+        
+              <template v-slot:footer>
+                <v-row
+                    class="mt-2"
+                    align="center"
+                    justify="center"
+                >
+                  <span class="grey--text">Карточек на странице</span>
+                  <v-menu offset-y>
+                    <template v-slot:activator="{ on, attrs }">
+                      <v-btn
+                          text
+                          color="dark"
+                          class="ml-2"
+                          v-bind="attrs"
+                          v-on="on"
+                      >
+                        {{ itemsPerPage }}
+                        <v-icon>mdi-chevron-down</v-icon>
+                      </v-btn>
+                    </template>
+                  </v-menu>
+        
+                  <v-spacer></v-spacer>
+        
+                  <span
+                      class="mr-4
+                    grey--text"
+                  >
+                    Страница {{ page }} из {{ numberOfPages }}
+                  </span>
+                  <v-btn
+                      fab
+                      dark
+                      color="dark"
+                      class="mr-1"
+                      @click="formerPage"
+                  >
+                    <v-icon>mdi-chevron-left</v-icon>
+                  </v-btn>
+                  <v-btn
+                      fab
+                      dark
+                      color="dark"
+                      class="ml-1"
+                      @click="nextPage"
+                  >
+                    <v-icon>mdi-chevron-right</v-icon>
+                  </v-btn>
+                </v-row>
+              </template>
+              <template v-slot:no-results>
+                <span>Нет подходящих вариантов</span>
+              </template>
+            </v-data-iterator>
+            <v-dialog
+                v-model="dialog"
+                max-width="800px"
+                min-width="340px"
+            >
+              <v-img :src="click_img" max-height="650px"></v-img>
+            </v-dialog>
+          </v-container>
+      </v-main>
+    </v-app>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify(),
+      data() {
+    return {
+      base_url: 'https://api.poverka-cistern.ru/v1',
+      click_img: '',
+      itemsPerPageArray: [4, 6, 12],
+      search: '',
+      filter: {},
+      sortDesc: false,
+      min: 0,
+      max: 0,
+      range: [0, 0],
+      page: 1,
+      itemsPerPage: 12,
+      sortBy: 'name',
+      keys: [
+        'Название',
+        'Адрес',
+        'Цена',
+      ],
+      items: [],
+      tempItems: [],
+
+      dialog: false
+    }
+  },
+  computed: {
+    numberOfPages() {
+      return Math.ceil(this.tempItems.length / this.itemsPerPage)
+    },
+    filteredKeys() {
+      return this.keys.filter(key => key !== 'Название')
+    },
+  },
+  watch: {
+    range(val) {
+      let tempItems = this.items
+      this.tempItems = tempItems.filter(function (item) {
+        return item.price >= val[0] && item.price <= val[1]
+      })
+    }
+  },
+  methods: {
+    nextPage() {
+      if (this.page + 1 <= this.numberOfPages) this.page += 1
+    },
+    formerPage() {
+      if (this.page - 1 >= 1) this.page -= 1
+    },
+    updateItemsPerPage(number) {
+      this.itemsPerPage = number
+    },
+    getData(page = 0, limit = 0) {
+      let url = this.base_url + '/bid-for-sale?'
+      page ? url += `page=${page}` : ''
+      limit ? url += `&limit = ${limit}` : ''
+      fetch(url).then(res => {
+        if (res.ok) {
+          res.json().then((data) => {
+            this.items = data.data.models
+            this.tempItems = data.data.models
+            this.min = this.range[0] = this.items.reduce(function (acc, curr) {
+              return Math.min(acc, curr.price);
+            }, Infinity)
+            this.max = this.range[1] = this.items.reduce(function (acc, curr) {
+              return Math.max(acc, curr.price);
+            }, -Infinity)
+            this.range = [this.min, this.max]
+          })
+        }
+      })
+    },
+  },
+  mounted() {
+    this.getData()
+  }
+    })
+  </script>
+</body>
+<style>
+    .v-label {
+      font-size: 20px;
+      font-weight: bold;
+    }
+</style>
+</html>
